@@ -4,6 +4,7 @@ from dash import html
 import plotly.express as px 
 import pandas as pd 
 import plotly.graph_objects as go 
+import plotly.io as pio
 from plotly.subplots import make_subplots
 import numpy as np
  
@@ -114,6 +115,8 @@ height=500,
 width=800 
 ) 
  
+# New code for the heatmap
+# Dictionary of London boroughs and their approximate coordinates
 london_boroughs = {
     'City of London': (51.5155, -0.0922),
     'Barking and Dagenham': (51.5387, 0.1309),
@@ -150,20 +153,27 @@ london_boroughs = {
     'Westminster': (51.4973, -0.1372)
 }
 
+# Read the CSV file
 df = pd.read_csv('dataset.csv', encoding='utf-8')
 
+# Add latitude and longitude to the DataFrame
 df['Latitude'] = df['Local Authority District name (2019)'].map(lambda x: london_boroughs.get(x, (None, None))[0])
 df['Longitude'] = df['Local Authority District name (2019)'].map(lambda x: london_boroughs.get(x, (None, None))[1])
 
+# Remove rows with missing coordinates
 df = df.dropna(subset=['Latitude', 'Longitude'])
 
+# Calculate the correlation between Education and Crime scores
 df['Correlation'] = (df['Education, Skills and Training Score'] - df['Education, Skills and Training Score'].mean()) * \
                     (df['Crime Score'] - df['Crime Score'].mean())
 
+# Normalize the Correlation for color scaling
 df['Normalized Correlation'] = (df['Correlation'] - df['Correlation'].min()) / (df['Correlation'].max() - df['Correlation'].min())
 
+# Use absolute value of Crime Score for marker size
 df['Abs Crime Score'] = np.abs(df['Crime Score'])
 
+# Create the map
 fig_heatmap = px.scatter_mapbox(df, 
                         lat="Latitude", 
                         lon="Longitude", 
@@ -179,16 +189,20 @@ fig_heatmap = px.scatter_mapbox(df,
 fig_heatmap.update_layout(mapbox_style="open-street-map")
 fig_heatmap.update_layout(margin={"r":0,"t":0,"l":0,"b":0})
 
+# Read the CSV file
 df = pd.read_csv('dataset.csv')
 
+# Convert scores to numeric, replacing any non-numeric values with NaN
 df['Crime Score'] = pd.to_numeric(df['Crime Score'], errors='coerce')
 df['Education, Skills and Training Score'] = pd.to_numeric(df['Education, Skills and Training Score'], errors='coerce')
 
+# Group by Local Authority District and calculate mean scores
 grouped = df.groupby('Local Authority District name (2019)').agg({
     'Crime Score': 'mean',
     'Education, Skills and Training Score': 'mean'
 }).reset_index()
 
+# 1. Scatter plot of Crime Score vs Education Score for all London Boroughs
 fig1 = px.scatter(grouped, x='Education, Skills and Training Score', y='Crime Score', 
                   text='Local Authority District name (2019)',
                   title='Crime Score vs Education Score in London Boroughs',
@@ -199,6 +213,7 @@ fig1 = px.scatter(grouped, x='Education, Skills and Training Score', y='Crime Sc
 fig1.update_traces(textposition='top center')
 fig1.update_layout(height=600, width=800)
 
+# 2. Dual-axis bar chart comparing Crime and Education scores for all boroughs
 grouped_sorted = grouped.sort_values('Crime Score', ascending=False)
 
 fig2 = make_subplots(specs=[[{"secondary_y": True}]])
@@ -241,6 +256,7 @@ fig2.update_yaxes(title_text="Education Score", secondary_y=True)
 for i in range(5, len(grouped_sorted), 5):
     fig2.add_vline(x=i-0.5, line_width=1, line_dash="dash", line_color="gray")
 
+# 3. Heatmap of Crime and Education scores (normalized)
 normalized_data = grouped.copy()
 normalized_data['Crime Score Normalized'] = (normalized_data['Crime Score'] - normalized_data['Crime Score'].min()) / (normalized_data['Crime Score'].max() - normalized_data['Crime Score'].min())
 normalized_data['Education Score Normalized'] = 1 - (normalized_data['Education, Skills and Training Score'] - normalized_data['Education, Skills and Training Score'].min()) / (normalized_data['Education, Skills and Training Score'].max() - normalized_data['Education, Skills and Training Score'].min())
@@ -274,6 +290,7 @@ for i, col in enumerate(['Crime Score', 'Education, Skills and Training Score'])
             font=dict(size=8, color='black')
         )
 
+# 4. Focus on Havering - Comparison with London average (dual-axis)
 havering = grouped[grouped['Local Authority District name (2019)'] == 'Havering'].iloc[0]
 london_avg = grouped[['Crime Score', 'Education, Skills and Training Score']].mean()
 
@@ -328,6 +345,7 @@ for i, area in enumerate(['Havering', 'London Average']):
         xshift=20
     )
 
+# 5. Comparison of Havering with Neighboring Boroughs using a Radial Plot
 neighbors = ['Havering', 'Barking and Dagenham', 'Redbridge', 'Bexley']
 neighbor_data = grouped[grouped['Local Authority District name (2019)'].isin(neighbors)].reset_index(drop=True)
 
@@ -398,11 +416,99 @@ for i, row in neighbor_data.iterrows():
         bgcolor='rgba(255, 255, 255, 0.8)'
     )
 
+# New code for the additional plots
+data = pd.read_csv('SharedDataSet.csv', usecols=['Local Authority District name (2019)', 'Income - Average rank', 'Employment - Average rank', 'Education, Skills and Training - Average rank', 'Crime - Average rank', 'Barriers to Housing and Services - Average rank', 'Living Environment - Average rank'])
+
+income_average_rank = np.array(data['Income - Average rank'])
+employment_average_rank = np.array(data['Employment - Average rank'])
+living_environment_average_rank = np.array(data['Living Environment - Average rank'])
+crime_average_rank = np.array(data['Crime - Average rank'])
+
+income_coef = np.corrcoef(income_average_rank, crime_average_rank)
+employment_coef = np.corrcoef(employment_average_rank, crime_average_rank)
+living_environment_coef = np.corrcoef(living_environment_average_rank, crime_average_rank)
+
+fig_income = go.Figure()
+fig_income.add_trace(go.Scatter(x=income_average_rank, y=crime_average_rank, mode='markers', name='Data'))
+fig_income.add_trace(go.Scatter(x=income_average_rank, y=0.7176 * income_average_rank + 6559, mode='lines', name='Best Fit'))
+fig_income.update_layout(
+    title='Income vs Crime',
+    xaxis_title='Average Income Rank',
+    yaxis_title='Average Crime Rank',
+    annotations=[dict(
+        x=0.05, y=0.95, 
+        xref="paper", yref="paper",
+        text=f'Pearson Coefficient = {round(income_coef[0][1], 3)}',
+        showarrow=False
+    )]
+)
+
+fig_employment = go.Figure()
+fig_employment.add_trace(go.Scatter(x=employment_average_rank, y=crime_average_rank, mode='markers', name='Data'))
+fig_employment.add_trace(go.Scatter(x=employment_average_rank, y=0.84 * employment_average_rank + 6813, mode='lines', name='Best Fit'))
+fig_employment.update_layout(
+    title='Employment vs Crime',
+    xaxis_title='Average Employment Rank',
+    yaxis_title='Average Crime Rank',
+    annotations=[dict(
+        x=0.05, y=0.95, 
+        xref="paper", yref="paper",
+        text=f'Pearson Coefficient = {round(employment_coef[0][1], 3)}',
+        showarrow=False
+    )]
+)
+
+fig_living_env = go.Figure()
+fig_living_env.add_trace(go.Scatter(x=living_environment_average_rank, y=crime_average_rank, mode='markers', name='Data'))
+fig_living_env.add_trace(go.Scatter(x=living_environment_average_rank, y=0.5558 * living_environment_average_rank + 7156, mode='lines', name='Best Fit'))
+fig_living_env.update_layout(
+    title='Living Environment vs Crime',
+    xaxis_title='Average Living Environment Rank',
+    yaxis_title='Average Crime Rank',
+    annotations=[dict(
+        x=0.05, y=0.95, 
+        xref="paper", yref="paper",
+        text=f'Pearson Coefficient = {round(living_environment_coef[0][1], 3)}',
+        showarrow=False
+    )]
+)
+
+# New code for the correlation matrix
+rank_df = pd.read_csv("PandasData.csv")
+corr = rank_df.select_dtypes('number').corr()
+
+fig_corr = go.Figure(data=go.Heatmap(
+                z=corr.values,
+                x=corr.columns,
+                y=corr.columns,
+                colorscale='RdBu',
+                zmin=-1, zmax=1
+            ))
+
+fig_corr.update_layout(
+    title='Correlation Matrix',
+    xaxis_title='Features',
+    yaxis_title='Features',
+    width=800,
+    height=800
+)
+
+for i, row in enumerate(corr.values):
+    for j, val in enumerate(row):
+        fig_corr.add_annotation(
+            x=corr.columns[j],
+            y=corr.columns[i],
+            text=f"{val:.2f}",
+            showarrow=False,
+            font=dict(color='black' if abs(val) < 0.5 else 'white')
+        )
+
+# Update the app layout to include all visualizations
 app.layout = html.Div(style={'backgroundColor': '#003366', 'color': 'white', 'padding': '20px'}, children=[
     html.H1("London Boroughs Education, Crime, and Ofsted Ratings Dashboard", style={'textAlign': 'center', 'color': 'white'}),
     
     html.Div([
-        dcc.Graph(figure=fig_heatmap),  # Add this line to include the heatmap
+        dcc.Graph(figure=fig_heatmap),
     ], style={'width': '100%', 'marginBottom': '20px'}),
 
     html.Div([
@@ -443,8 +549,27 @@ app.layout = html.Div(style={'backgroundColor': '#003366', 'color': 'white', 'pa
             dcc.Graph(figure=fig_crime_havering),
         ], style={'width': '50%', 'display': 'inline-block'}),
     ], style={'display': 'flex', 'justify-content': 'space-between'}),
-])
 
+    # Income vs Crime plot
+    html.Div([
+        dcc.Graph(figure=fig_income),
+    ], style={'width': '100%', 'marginBottom': '20px'}),
+
+    # Employment vs Crime plot
+    html.Div([
+        dcc.Graph(figure=fig_employment),
+    ], style={'width': '100%', 'marginBottom': '20px'}),
+
+    # Living Environment vs Crime plot
+    html.Div([
+        dcc.Graph(figure=fig_living_env),
+    ], style={'width': '100%', 'marginBottom': '20px'}),
+
+    # Correlation Matrix
+    html.Div([
+        dcc.Graph(figure=fig_corr),
+    ], style={'width': '100%', 'marginBottom': '20px'}),
+])
 
 if __name__ == "__main__":
     app.run_server(debug=True)
