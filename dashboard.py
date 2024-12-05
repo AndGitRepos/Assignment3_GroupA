@@ -115,7 +115,6 @@ height=500,
 width=800 
 ) 
  
-# New code for the heatmap
 # Dictionary of London boroughs and their approximate coordinates
 london_boroughs = {
     'City of London': (51.5155, -0.0922),
@@ -153,27 +152,20 @@ london_boroughs = {
     'Westminster': (51.4973, -0.1372)
 }
 
-# Read the CSV file
 df = pd.read_csv('dataset.csv', encoding='utf-8')
 
-# Add latitude and longitude to the DataFrame
 df['Latitude'] = df['Local Authority District name (2019)'].map(lambda x: london_boroughs.get(x, (None, None))[0])
 df['Longitude'] = df['Local Authority District name (2019)'].map(lambda x: london_boroughs.get(x, (None, None))[1])
 
-# Remove rows with missing coordinates
 df = df.dropna(subset=['Latitude', 'Longitude'])
 
-# Calculate the correlation between Education and Crime scores
 df['Correlation'] = (df['Education, Skills and Training Score'] - df['Education, Skills and Training Score'].mean()) * \
                     (df['Crime Score'] - df['Crime Score'].mean())
 
-# Normalize the Correlation for color scaling
 df['Normalized Correlation'] = (df['Correlation'] - df['Correlation'].min()) / (df['Correlation'].max() - df['Correlation'].min())
 
-# Use absolute value of Crime Score for marker size
 df['Abs Crime Score'] = np.abs(df['Crime Score'])
 
-# Create the map
 fig_heatmap = px.scatter_mapbox(df, 
                         lat="Latitude", 
                         lon="Longitude", 
@@ -189,14 +181,11 @@ fig_heatmap = px.scatter_mapbox(df,
 fig_heatmap.update_layout(mapbox_style="open-street-map")
 fig_heatmap.update_layout(margin={"r":0,"t":0,"l":0,"b":0})
 
-# Read the CSV file
 df = pd.read_csv('dataset.csv')
 
-# Convert scores to numeric, replacing any non-numeric values with NaN
 df['Crime Score'] = pd.to_numeric(df['Crime Score'], errors='coerce')
 df['Education, Skills and Training Score'] = pd.to_numeric(df['Education, Skills and Training Score'], errors='coerce')
 
-# Group by Local Authority District and calculate mean scores
 grouped = df.groupby('Local Authority District name (2019)').agg({
     'Crime Score': 'mean',
     'Education, Skills and Training Score': 'mean'
@@ -256,7 +245,7 @@ fig2.update_yaxes(title_text="Education Score", secondary_y=True)
 for i in range(5, len(grouped_sorted), 5):
     fig2.add_vline(x=i-0.5, line_width=1, line_dash="dash", line_color="gray")
 
-# 3. Heatmap of Crime and Education scores (normalized)
+# 3. Heatmap of Crime and Education scores
 normalized_data = grouped.copy()
 normalized_data['Crime Score Normalized'] = (normalized_data['Crime Score'] - normalized_data['Crime Score'].min()) / (normalized_data['Crime Score'].max() - normalized_data['Crime Score'].min())
 normalized_data['Education Score Normalized'] = 1 - (normalized_data['Education, Skills and Training Score'] - normalized_data['Education, Skills and Training Score'].min()) / (normalized_data['Education, Skills and Training Score'].max() - normalized_data['Education, Skills and Training Score'].min())
@@ -416,7 +405,6 @@ for i, row in neighbor_data.iterrows():
         bgcolor='rgba(255, 255, 255, 0.8)'
     )
 
-# New code for the additional plots
 data = pd.read_csv('SharedDataSet.csv', usecols=['Local Authority District name (2019)', 'Income - Average rank', 'Employment - Average rank', 'Education, Skills and Training - Average rank', 'Crime - Average rank', 'Barriers to Housing and Services - Average rank', 'Living Environment - Average rank'])
 
 income_average_rank = np.array(data['Income - Average rank'])
@@ -473,7 +461,6 @@ fig_living_env.update_layout(
     )]
 )
 
-# New code for the correlation matrix
 rank_df = pd.read_csv("PandasData.csv")
 corr = rank_df.select_dtypes('number').corr()
 
@@ -503,7 +490,6 @@ for i, row in enumerate(corr.values):
             font=dict(color='black' if abs(val) < 0.5 else 'white')
         )
 
-# Define color scheme
 colors = {
     'background': '#1E1E1E',
     'text': '#FFFFFF',
@@ -514,7 +500,6 @@ colors = {
     'plot_text': '#E0E0E0',
 }
 
-# Define custom CSS for the tabs
 tabs_styles = {
     'height': '44px',
     'backgroundColor': colors['secondary']
@@ -566,6 +551,7 @@ app.layout = html.Div([
 @app.callback(Output('tab-content', 'children'),
               Input('tabs', 'value'),
               Input('current-graph', 'data'))
+
 def render_content(tab, current_graph):
     if tab == 'tab-0':
         return dcc.Markdown('''
