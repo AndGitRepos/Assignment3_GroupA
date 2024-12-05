@@ -1,5 +1,5 @@
 import dash 
-from dash import dcc
+from dash import dcc, Input, Output
 from dash import html
 import plotly.express as px 
 import pandas as pd 
@@ -503,73 +503,96 @@ for i, row in enumerate(corr.values):
             font=dict(color='black' if abs(val) < 0.5 else 'white')
         )
 
-# Update the app layout to include all visualizations
+# Define custom CSS for the tabs
+tabs_styles = {
+    'height': '44px'
+}
+tab_style = {
+    'borderBottom': '1px solid #d6d6d6',
+    'padding': '6px',
+    'fontWeight': 'bold',
+    'color': 'black',
+    'backgroundColor': '#f2f2f2'
+}
+tab_selected_style = {
+    'borderTop': '1px solid #d6d6d6',
+    'borderBottom': '1px solid #d6d6d6',
+    'backgroundColor': '#119DFF',
+    'color': 'black',
+    'padding': '6px'
+}
+
+# Create the app layout
 app.layout = html.Div(style={'backgroundColor': '#003366', 'color': 'white', 'padding': '20px'}, children=[
     html.H1("London Boroughs Education, Crime, and Ofsted Ratings Dashboard", style={'textAlign': 'center', 'color': 'white'}),
     
-    html.Div([
-        dcc.Graph(figure=fig_heatmap),
-    ], style={'width': '100%', 'marginBottom': '20px'}),
-
-    html.Div([
-        dcc.Graph(figure=fig1),
-    ], style={'width': '100%', 'marginBottom': '20px'}),
-
-    html.Div([
-        dcc.Graph(figure=fig2),
-    ], style={'width': '100%', 'marginBottom': '20px'}),
-
-    html.Div([
-        dcc.Graph(figure=fig3),
-    ], style={'width': '100%', 'marginBottom': '20px'}),
-
-    html.Div([
-        dcc.Graph(figure=fig4),
-    ], style={'width': '100%', 'marginBottom': '20px'}),
-
-    html.Div([
-        dcc.Graph(figure=fig5),
-    ], style={'width': '100%', 'marginBottom': '20px'}),
-
-    html.Div([
-        html.Div([
-            dcc.Graph(figure=fig_kensington),
-        ], style={'width': '50%', 'display': 'inline-block'}),
-        html.Div([
-            dcc.Graph(figure=fig_havering),
-        ], style={'width': '50%', 'display': 'inline-block'}),
-    ], style={'display': 'flex', 'justify-content': 'space-between'}),
-
-    html.Br(),
-    html.Div([
-        html.Div([
-            dcc.Graph(figure=fig_crime_kensington),
-        ], style={'width': '50%', 'display': 'inline-block'}),
-        html.Div([
-            dcc.Graph(figure=fig_crime_havering),
-        ], style={'width': '50%', 'display': 'inline-block'}),
-    ], style={'display': 'flex', 'justify-content': 'space-between'}),
-
-    # Income vs Crime plot
-    html.Div([
-        dcc.Graph(figure=fig_income),
-    ], style={'width': '100%', 'marginBottom': '20px'}),
-
-    # Employment vs Crime plot
-    html.Div([
-        dcc.Graph(figure=fig_employment),
-    ], style={'width': '100%', 'marginBottom': '20px'}),
-
-    # Living Environment vs Crime plot
-    html.Div([
-        dcc.Graph(figure=fig_living_env),
-    ], style={'width': '100%', 'marginBottom': '20px'}),
-
-    # Correlation Matrix
-    html.Div([
-        dcc.Graph(figure=fig_corr),
-    ], style={'width': '100%', 'marginBottom': '20px'}),
+    dcc.Tabs(id="tabs", value='tab-1', children=[
+        dcc.Tab(label='Overview Map', value='tab-1', style=tab_style, selected_style=tab_selected_style),
+        dcc.Tab(label='Crime vs Education', value='tab-2', style=tab_style, selected_style=tab_selected_style),
+        dcc.Tab(label='Borough Comparison', value='tab-3', style=tab_style, selected_style=tab_selected_style),
+        dcc.Tab(label='Havering Focus', value='tab-4', style=tab_style, selected_style=tab_selected_style),
+        dcc.Tab(label='Ofsted Ratings', value='tab-5', style=tab_style, selected_style=tab_selected_style),
+        dcc.Tab(label='Crime Types', value='tab-6', style=tab_style, selected_style=tab_selected_style),
+        dcc.Tab(label='Socioeconomic Factors', value='tab-7', style=tab_style, selected_style=tab_selected_style),
+        dcc.Tab(label='Correlation Matrix', value='tab-8', style=tab_style, selected_style=tab_selected_style),
+    ], style=tabs_styles),
+    
+    html.Div(id='tab-content')
 ])
+
+# Callback to update tab content
+@app.callback(Output('tab-content', 'children'),
+              Input('tabs', 'value'))
+def render_content(tab):
+    if tab == 'tab-1':
+        return html.Div([
+            dcc.Graph(figure=fig_heatmap, style={'height': '80vh'})
+        ])
+    elif tab == 'tab-2':
+        return html.Div([
+            dcc.Graph(figure=fig1, style={'height': '80vh'})
+        ])
+    elif tab == 'tab-3':
+        return html.Div([
+            dcc.Graph(figure=fig2, style={'height': '80vh'})
+        ])
+    elif tab == 'tab-4':
+        return html.Div([
+            html.Div([
+                dcc.Graph(figure=fig4, style={'height': '40vh'}),
+            ], style={'width': '50%', 'display': 'inline-block'}),
+            html.Div([
+                dcc.Graph(figure=fig5, style={'height': '40vh'}),
+            ], style={'width': '50%', 'display': 'inline-block'}),
+        ])
+    elif tab == 'tab-5':
+        return html.Div([
+            html.Div([
+                dcc.Graph(figure=fig_kensington, style={'height': '40vh'}),
+            ], style={'width': '50%', 'display': 'inline-block'}),
+            html.Div([
+                dcc.Graph(figure=fig_havering, style={'height': '40vh'}),
+            ], style={'width': '50%', 'display': 'inline-block'}),
+        ])
+    elif tab == 'tab-6':
+        return html.Div([
+            html.Div([
+                dcc.Graph(figure=fig_crime_kensington, style={'height': '40vh'}),
+            ], style={'width': '50%', 'display': 'inline-block'}),
+            html.Div([
+                dcc.Graph(figure=fig_crime_havering, style={'height': '40vh'}),
+            ], style={'width': '50%', 'display': 'inline-block'}),
+        ])
+    elif tab == 'tab-7':
+        return html.Div([
+            dcc.Graph(figure=fig_income, style={'height': '40vh'}),
+            dcc.Graph(figure=fig_employment, style={'height': '40vh'}),
+            dcc.Graph(figure=fig_living_env, style={'height': '40vh'}),
+        ])
+    elif tab == 'tab-8':
+        return html.Div([
+            dcc.Graph(figure=fig_corr, style={'height': '80vh'})
+        ])
 
 if __name__ == "__main__":
     app.run_server(debug=True)
