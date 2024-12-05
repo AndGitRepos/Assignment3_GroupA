@@ -1,5 +1,5 @@
 import dash 
-from dash import dcc, Input, Output
+from dash import dcc, Input, Output, State
 from dash import html
 import plotly.express as px 
 import pandas as pd 
@@ -503,30 +503,45 @@ for i, row in enumerate(corr.values):
             font=dict(color='black' if abs(val) < 0.5 else 'white')
         )
 
+# Define color scheme
+colors = {
+    'background': '#1E1E1E',
+    'text': '#FFFFFF',
+    'primary': '#4A4A4A',
+    'secondary': '#2C2C2C',
+    'accent': '#4CAF50',
+    'plot_background': '#2C2C2C',
+    'plot_text': '#E0E0E0',
+}
+
 # Define custom CSS for the tabs
 tabs_styles = {
-    'height': '44px'
+    'height': '44px',
+    'backgroundColor': colors['secondary']
 }
 tab_style = {
-    'borderBottom': '1px solid #d6d6d6',
+    'borderBottom': f'1px solid {colors["primary"]}',
     'padding': '6px',
     'fontWeight': 'bold',
-    'color': 'black',
-    'backgroundColor': '#f2f2f2'
+    'color': colors['text'],
+    'backgroundColor': colors['secondary']
 }
 tab_selected_style = {
-    'borderTop': '1px solid #d6d6d6',
-    'borderBottom': '1px solid #d6d6d6',
-    'backgroundColor': '#119DFF',
-    'color': 'black',
+    'borderTop': f'1px solid {colors["accent"]}',
+    'borderBottom': f'1px solid {colors["accent"]}',
+    'backgroundColor': colors['primary'],
+    'color': colors['accent'],
     'padding': '6px'
 }
 
-# Create the app layout
-app.layout = html.Div(style={'backgroundColor': '#003366', 'color': 'white', 'padding': '20px'}, children=[
-    html.H1("London Boroughs Education, Crime, and Ofsted Ratings Dashboard", style={'textAlign': 'center', 'color': 'white'}),
+app = dash.Dash(__name__, suppress_callback_exceptions=True)
+
+app.layout = html.Div([
+    html.H1("Causes of crime in London", 
+            style={'textAlign': 'center', 'color': colors['text'], 'backgroundColor': colors['primary'], 'padding': '10px', 'marginBottom': '0'}),
     
-    dcc.Tabs(id="tabs", value='tab-1', children=[
+    dcc.Tabs(id="tabs", value='tab-0', children=[
+        dcc.Tab(label='Introduction', value='tab-0', style=tab_style, selected_style=tab_selected_style),
         dcc.Tab(label='Overview Map', value='tab-1', style=tab_style, selected_style=tab_selected_style),
         dcc.Tab(label='Crime vs Education', value='tab-2', style=tab_style, selected_style=tab_selected_style),
         dcc.Tab(label='Borough Comparison', value='tab-3', style=tab_style, selected_style=tab_selected_style),
@@ -537,62 +552,104 @@ app.layout = html.Div(style={'backgroundColor': '#003366', 'color': 'white', 'pa
         dcc.Tab(label='Correlation Matrix', value='tab-8', style=tab_style, selected_style=tab_selected_style),
     ], style=tabs_styles),
     
-    html.Div(id='tab-content')
-])
+    html.Div(id='tab-content', style={
+        'height': 'calc(100vh - 110px)', 
+        'padding': '10px',
+        'backgroundColor': colors['background'],
+        'color': colors['text'],
+        'overflow': 'auto'
+    }),
 
-# Callback to update tab content
+    dcc.Store(id='current-graph', data=0)
+], style={'backgroundColor': colors['background'], 'height': '100vh'})
+
 @app.callback(Output('tab-content', 'children'),
-              Input('tabs', 'value'))
-def render_content(tab):
-    if tab == 'tab-1':
-        return html.Div([
-            dcc.Graph(figure=fig_heatmap, style={'height': '80vh'})
-        ])
+              Input('tabs', 'value'),
+              Input('current-graph', 'data'))
+def render_content(tab, current_graph):
+    if tab == 'tab-0':
+        return dcc.Markdown('''
+        # What Kensington is doing to reduce crime through the use of education
+        - Restorative practices and workshops in schools to prevent reoffending and de-escalate conflicts.
+        - Early intervention programs to address behavioral issues before they lead to criminal activity.
+        - Access to inner-city grants for addressing youth crime, enabling programs like PSHE enhancements and community-based mentoring. Havering relies more heavily on council budgets and limited high-needs funding.
+
+        # What Havering can do to improve their crime rates
+        - Workshops in schools: "Youth Violence and Exploitation Strategy 2022-2025"/ "2020 Dreams" workshops
+        - Gang and knife crime prevention workshops
+        - Youth mentorship programs: pairs students with community leaders, ex-offenders or other professionals to provide guidance and act as positive role models
+        - Community policing and school collaboration: Regular police visits and discussions in schools help deter crime and build relationships
+        - Seek External Funding: Apply for grants from national initiatives and charity organizations to supplement council funding.
+        ''', style={'backgroundColor': colors['secondary'], 'padding': '20px', 'color': colors['text'], 'borderRadius': '10px', 'boxShadow': '0 4px 6px rgba(0, 0, 0, 0.1)', 'height': '100%', 'overflow': 'auto'})
+    elif tab == 'tab-1':
+        fig_heatmap.update_layout(height=700, width=1200, paper_bgcolor=colors['plot_background'], plot_bgcolor=colors['plot_background'], font_color=colors['plot_text'])
+        return dcc.Graph(figure=fig_heatmap, style={'height': '100%', 'width': '100%'})
     elif tab == 'tab-2':
-        return html.Div([
-            dcc.Graph(figure=fig1, style={'height': '80vh'})
-        ])
+        fig1.update_layout(height=700, width=1200, paper_bgcolor=colors['plot_background'], plot_bgcolor=colors['plot_background'], font_color=colors['plot_text'])
+        return dcc.Graph(figure=fig1, style={'height': '100%', 'width': '100%'})
     elif tab == 'tab-3':
-        return html.Div([
-            dcc.Graph(figure=fig2, style={'height': '80vh'})
-        ])
+        fig2.update_layout(height=700, width=1200, paper_bgcolor=colors['plot_background'], plot_bgcolor=colors['plot_background'], font_color=colors['plot_text'])
+        return dcc.Graph(figure=fig2, style={'height': '100%', 'width': '100%'})
     elif tab == 'tab-4':
+        fig4.update_layout(height=450, width=650, paper_bgcolor=colors['plot_background'], plot_bgcolor=colors['plot_background'], font_color=colors['plot_text'])
+        fig5.update_layout(height=450, width=650, paper_bgcolor=colors['plot_background'], plot_bgcolor=colors['plot_background'], font_color=colors['plot_text'])
         return html.Div([
-            html.Div([
-                dcc.Graph(figure=fig4, style={'height': '40vh'}),
-            ], style={'width': '50%', 'display': 'inline-block'}),
-            html.Div([
-                dcc.Graph(figure=fig5, style={'height': '40vh'}),
-            ], style={'width': '50%', 'display': 'inline-block'}),
+            html.Div([dcc.Graph(figure=fig4)], style={'width': '50%', 'display': 'inline-block'}),
+            html.Div([dcc.Graph(figure=fig5)], style={'width': '50%', 'display': 'inline-block'}),
         ])
     elif tab == 'tab-5':
+        fig_kensington.update_layout(height=450, width=650, paper_bgcolor=colors['plot_background'], plot_bgcolor=colors['plot_background'], font_color=colors['plot_text'])
+        fig_havering.update_layout(height=450, width=650, paper_bgcolor=colors['plot_background'], plot_bgcolor=colors['plot_background'], font_color=colors['plot_text'])
         return html.Div([
-            html.Div([
-                dcc.Graph(figure=fig_kensington, style={'height': '40vh'}),
-            ], style={'width': '50%', 'display': 'inline-block'}),
-            html.Div([
-                dcc.Graph(figure=fig_havering, style={'height': '40vh'}),
-            ], style={'width': '50%', 'display': 'inline-block'}),
+            html.Div([dcc.Graph(figure=fig_kensington)], style={'width': '50%', 'display': 'inline-block'}),
+            html.Div([dcc.Graph(figure=fig_havering)], style={'width': '50%', 'display': 'inline-block'}),
         ])
     elif tab == 'tab-6':
+        fig_crime_kensington.update_layout(height=450, width=650, paper_bgcolor=colors['plot_background'], plot_bgcolor=colors['plot_background'], font_color=colors['plot_text'])
+        fig_crime_havering.update_layout(height=450, width=650, paper_bgcolor=colors['plot_background'], plot_bgcolor=colors['plot_background'], font_color=colors['plot_text'])
         return html.Div([
-            html.Div([
-                dcc.Graph(figure=fig_crime_kensington, style={'height': '40vh'}),
-            ], style={'width': '50%', 'display': 'inline-block'}),
-            html.Div([
-                dcc.Graph(figure=fig_crime_havering, style={'height': '40vh'}),
-            ], style={'width': '50%', 'display': 'inline-block'}),
+            html.Div([dcc.Graph(figure=fig_crime_kensington)], style={'width': '50%', 'display': 'inline-block'}),
+            html.Div([dcc.Graph(figure=fig_crime_havering)], style={'width': '50%', 'display': 'inline-block'}),
         ])
     elif tab == 'tab-7':
+        if current_graph == 0:
+            fig = fig_income
+        elif current_graph == 1:
+            fig = fig_employment
+        else:
+            fig = fig_living_env
+        
+        fig.update_layout(height=700, width=1200, paper_bgcolor=colors['plot_background'], plot_bgcolor=colors['plot_background'], font_color=colors['plot_text'])
+        
         return html.Div([
-            dcc.Graph(figure=fig_income, style={'height': '40vh'}),
-            dcc.Graph(figure=fig_employment, style={'height': '40vh'}),
-            dcc.Graph(figure=fig_living_env, style={'height': '40vh'}),
+            dcc.Graph(figure=fig, style={'height': '700px', 'width': '100%'}),
+            html.Div([
+                html.Button('Previous', id='prev-button', n_clicks=0, style={'marginRight': '10px'}),
+                html.Button('Next', id='next-button', n_clicks=0),
+            ], style={'textAlign': 'center', 'marginTop': '10px'})
         ])
     elif tab == 'tab-8':
-        return html.Div([
-            dcc.Graph(figure=fig_corr, style={'height': '80vh'})
-        ])
+        fig_corr.update_layout(height=700, width=1200, paper_bgcolor=colors['plot_background'], plot_bgcolor=colors['plot_background'], font_color=colors['plot_text'])
+        return dcc.Graph(figure=fig_corr, style={'height': '100%', 'width': '100%'})
 
-if __name__ == "__main__":
+@app.callback(
+    Output('current-graph', 'data'),
+    Input('prev-button', 'n_clicks'),
+    Input('next-button', 'n_clicks'),
+    State('current-graph', 'data')
+)
+def update_graph(prev_clicks, next_clicks, current_graph):
+    ctx = dash.callback_context
+    if not ctx.triggered:
+        return 0
+    else:
+        button_id = ctx.triggered[0]['prop_id'].split('.')[0]
+    
+    if button_id == 'next-button':
+        return (current_graph + 1) % 3
+    elif button_id == 'prev-button':
+        return (current_graph - 1) % 3
+    return current_graph
+
+if __name__ == '__main__':
     app.run_server(debug=True)
